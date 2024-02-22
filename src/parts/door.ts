@@ -1,8 +1,8 @@
 import { BoxGeometry, Material, Mesh } from "three";
 import { TerrariumOptions } from "../terrarium-options";
-import { MuliTerrariumPart } from "./multi-terrarium-part";
+import { MultiTerrariumPart } from "./multi-terrarium-part";
 
-export class Door implements MuliTerrariumPart {
+export class Door implements MultiTerrariumPart {
     generate(options: TerrariumOptions, materials: Material[]): Mesh[] {
         let doors = [];
 
