@@ -16,7 +16,7 @@ export class Side implements TerrariumPart {
         );
         side.position.y = options.height / 2 - options.glassThickness / 2;
         side.position.x =
-            this.direction * (options.width / 2 - options.glassThickness / 2 - options.offset);
+            this.direction * (options.width / 2 - options.glassThickness / 2 + options.offset);
 
         return side;
     }
