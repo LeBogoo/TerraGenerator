@@ -6,15 +6,16 @@ import { TerrariumOptions } from "./terrarium-options";
 import { RNG } from "./rng";
 import { Bottom } from "./parts/bottom";
 import { Side } from "./parts/side";
-import { Door } from "./parts/door";
-import { FrontBottom } from "./parts/front-bottom";
-import { FrontTop } from "./parts/front-top";
+import { Door } from "./parts/frontModules/door";
 import { Back } from "./parts/back";
 import { Top } from "./parts/top";
+import { Front } from "./parts/front";
+import { Glass } from "./parts/frontModules/glass";
+import { Vent } from "./parts/frontModules/vent";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(50, 70, 50);
+camera.position.set(70, 70, 70);
 
 const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -24,7 +25,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.center.set(0, 20, 0);
+controls.center.set(0, 50, 0);
 
 const ambientLight = new THREE.AmbientLight(0x404040);
 scene.add(ambientLight);
@@ -47,15 +48,17 @@ function onWindowResize() {
 
 const terrariumOptions: TerrariumOptions = {
     width: 39,
-    height: 50,
+    height: 100,
     depth: 39,
     glassThickness: 0.8,
     door: {
-        height: 30,
-        offset: 10,
-        gap: 0,
+        height: 55,
+        offset: 30,
     },
     offset: 0,
+    ventilation: {
+        height: 5,
+    },
 };
 
 const gui = new GUI();
@@ -76,6 +79,14 @@ const doorOffsetOption = doorFolder
     });
 
 doorFolder.open();
+
+const ventilationFolder = terrariumFolder.addFolder("Ventilation");
+const ventilationHeightOption = ventilationFolder
+    .add(terrariumOptions.ventilation, "height", 0, 20, 0.1)
+    .onChange(generateTerrarium);
+// TODO - Fix door height when vent is changed
+
+ventilationFolder.open();
 
 const wallsFolder = terrariumFolder.addFolder("Walls");
 wallsFolder.add(terrariumOptions, "width", 10, 200, 0.1).onChange(generateTerrarium);
@@ -115,13 +126,26 @@ function generateTerrarium() {
     panes.push(new Back().generate(terrariumOptions, getMaterial(rng)));
     panes.push(new Side(-1).generate(terrariumOptions, getMaterial(rng)));
     panes.push(new Side(1).generate(terrariumOptions, getMaterial(rng)));
-    panes.push(...new Door().generate(terrariumOptions, [getMaterial(rng), getMaterial(rng)]));
 
-    if (terrariumOptions.door.offset != 0)
-        panes.push(new FrontBottom().generate(terrariumOptions, getMaterial(rng)));
-
-    if (terrariumOptions.height - (terrariumOptions.door.offset + terrariumOptions.door.height) != 0)
-        panes.push(new FrontTop().generate(terrariumOptions, getMaterial(rng)));
+    panes.push(
+        ...new Front(
+            new Glass(terrariumOptions.door.offset)
+                .setChild(new Vent(terrariumOptions.ventilation.height))
+                .setChild(new Door(terrariumOptions.door.height))
+                .setChild(new Vent(terrariumOptions.ventilation.height))
+                .setChild(
+                    new Glass(
+                        terrariumOptions.height -
+                            terrariumOptions.door.offset -
+                            terrariumOptions.door.height -
+                            terrariumOptions.ventilation.height * 2
+                    )
+                )
+                .getRoot(),
+            getMaterial,
+            rng
+        ).generate(terrariumOptions, [])
+    );
 
     scene.add(...panes);
 }

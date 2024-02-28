@@ -6,7 +6,9 @@ export interface TerrariumOptions {
     door: {
         height: number;
         offset: number;
-        gap: number;
+    };
+    ventilation: {
+        height: number;
     };
     offset: number;
 }
