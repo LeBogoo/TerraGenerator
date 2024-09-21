@@ -1,6 +1,7 @@
 import "./style.css";
 import * as THREE from "three";
 import { OrbitControls } from "@three-ts/orbit-controls";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { GUI } from "dat.gui";
 import { TerrariumOptions } from "./terrarium-options";
 import { RNG } from "./rng";
@@ -44,6 +45,58 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     render();
+}
+
+function exportGLTF() {
+    // Temporarily set the offset to 0 to export the terrarium without the offset
+    const explodeFactor = terrariumOptions.offset;
+    terrariumOptions.offset = 0;
+    generateTerrarium();
+
+    const exporter = new GLTFExporter();
+
+    // Create a new scene to hold only the 3D objects
+    const sceneWithoutLights = new THREE.Scene();
+
+    // Add only the non-light objects to the new scene
+    scene.children.forEach((child) => {
+        if (!(child instanceof THREE.Light)) {
+            const clonedChild = child.clone();
+            // Apply scaling directly to the geometry
+            clonedChild.scale.set(0.01, 0.01, 0.01);
+            // Scale the position of the object
+            clonedChild.position.set(
+                clonedChild.position.x * 0.01,
+                clonedChild.position.y * 0.01,
+                clonedChild.position.z * 0.01
+            );
+            sceneWithoutLights.add(clonedChild);
+        }
+    });
+    exporter.parse(
+        sceneWithoutLights,
+        (result) => {
+            const output = JSON.stringify(result, null, 2);
+            const blob = new Blob([output], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            // the filename should be "terrarium_<width>_<height>_<length>.gltf"
+            link.download = `terrarium_${terrariumOptions.width}_${terrariumOptions.height}_${
+                terrariumOptions.depth
+            }_${Date.now()}.gltf`;
+            link.click();
+            URL.revokeObjectURL(url);
+        },
+        (err) => {
+            console.error(err);
+        },
+        { binary: false }
+    );
+
+    // Reset the offset to its original value
+    terrariumOptions.offset = explodeFactor;
+    generateTerrarium();
 }
 
 const terrariumOptions: TerrariumOptions = {
@@ -106,6 +159,12 @@ wallsFolder.add(terrariumOptions, "depth", 10, 200, 0.1).onChange(generateTerrar
 wallsFolder.open();
 
 gui.add(terrariumOptions, "offset", 0, 10, 0.1).onChange(generateTerrarium);
+gui.add(
+    {
+        "Export as GLTF": exportGLTF,
+    },
+    "Export as GLTF"
+);
 terrariumFolder.open();
 
 const getMaterial = (rng: RNG) =>
