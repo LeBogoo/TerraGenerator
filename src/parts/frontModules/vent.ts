@@ -1,4 +1,5 @@
 import { Material, Mesh, BoxGeometry } from "three";
+import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import { RNG } from "../../rng";
 import { TerrariumOptions } from "../../terrarium-options";
 import { Spacer } from "./spacer";
@@ -10,43 +11,56 @@ export class Vent extends Spacer {
 
         if (this.height == 0) return elements;
 
-        const topVentRim = new Mesh(
-            new BoxGeometry(
-                options.width,
-                Math.min(this.height, options.glassThickness),
-                options.glassThickness
-            ),
-            material
+        const topVentRim = new BoxGeometry(
+            options.width,
+            Math.min(this.height, options.glassThickness),
+            options.glassThickness
         );
 
-        const bottomVentRim = topVentRim.clone(true);
+        const bottomVentRim = topVentRim.clone();
 
-        topVentRim.position.y = this.getTop() - options.glassThickness / 2;
-        bottomVentRim.position.y = this.getBottom() + options.glassThickness / 2;
-
-        topVentRim.position.z = options.depth / 2 - options.glassThickness / 2 + options.offset;
-        bottomVentRim.position.z = topVentRim.position.z;
-
-        const leftRim = new Mesh(
-            new BoxGeometry(
-                options.glassThickness,
-                this.height - options.glassThickness * 2,
-                options.glassThickness
-            ),
-            material
+        const leftRim = new BoxGeometry(
+            options.glassThickness,
+            this.height - options.glassThickness * 2,
+            options.glassThickness
         );
 
-        const rightRim = leftRim.clone(true);
+        const rightRim = leftRim.clone();
 
-        leftRim.position.x = -options.width / 2 + options.glassThickness / 2;
-        leftRim.position.y = this.getBottom() + this.height / 2;
-        leftRim.position.z = options.depth / 2 - options.glassThickness / 2 + options.offset;
+        topVentRim.translate(
+            0,
+            this.getTop() - options.glassThickness / 2,
+            options.depth / 2 - options.glassThickness / 2 + options.offset
+        );
+        bottomVentRim.translate(
+            0,
+            this.getBottom() + options.glassThickness / 2,
+            options.depth / 2 - options.glassThickness / 2 + options.offset
+        );
 
-        rightRim.position.x = -leftRim.position.x;
-        rightRim.position.y = leftRim.position.y;
-        rightRim.position.z = leftRim.position.z;
+        leftRim.translate(
+            -options.width / 2 + options.glassThickness / 2,
+            this.getBottom() + this.height / 2,
+            options.depth / 2 - options.glassThickness / 2 + options.offset
+        );
+        rightRim.translate(
+            options.width / 2 - options.glassThickness / 2,
+            this.getBottom() + this.height / 2,
+            options.depth / 2 - options.glassThickness / 2 + options.offset
+        );
 
-        elements.push(topVentRim, bottomVentRim, leftRim, rightRim);
+        let mergedGeometry = BufferGeometryUtils.mergeGeometries([
+            topVentRim,
+            bottomVentRim,
+            leftRim,
+            rightRim,
+        ]);
+
+        mergedGeometry = BufferGeometryUtils.mergeVertices(mergedGeometry);
+
+        const ventMesh = new Mesh(mergedGeometry, material);
+
+        elements.push(ventMesh);
 
         return elements;
     }
